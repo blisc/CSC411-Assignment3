@@ -11,8 +11,8 @@ Nathan Kong
 To install sklearn and skimage:
 <br>
 ~~~~
-pip install sklearn --upgrade
-pip install skimage --user --upgrade
+sudo pip install scikit-learn --upgrade
+sudo pip install skimage --user --upgrade
 ~~~~
 <br>
 Try installing without the options first. The installation can fail if their dependencies are not installed.

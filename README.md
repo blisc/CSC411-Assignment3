@@ -18,3 +18,9 @@ pip install skimage --user --upgrade
 Try installing without the options first. The installation can fail if their dependencies are not installed.
 <br>
 If so, follow the instructions to install the dependencies.
+
+## How to run
+~~~~
+python main.py
+~~~~
+

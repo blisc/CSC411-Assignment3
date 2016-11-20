@@ -29,31 +29,20 @@ def main(debug=0):
 	pathToImages = 'Data/train/'
 	labelsFile = 'Data/train.csv'
 
-	# Create data tables
-	data = DataTable(pathToImages, labelsFile)
-	if debug:
-		data.processImages(numImages=10)
-	else:
-		data.processImages(numImages=500)
-	data.readLabels()
+	
 
-	# Get data tables
-	dataTable = data.getDataTable()
-	labels = dataTable['labels']
-	inputs = dataTable['inputs']
-	flatInputs = dataTable['flat_inputs']
-
-	# Some debugging / sanity check
-	if debug:
-		printSomeLabels(labels, 10)
-		dispSomeImages(inputs, 1)
-
-	# Preprocess
-	lowDimInputs = DoPCA(flatInputs, numComponents=2)
-	print(lowDimInputs.shape)
-
-	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
-	Plot2D(lowDimInputs, labels, colors, 2)
+#
+#	# Some debugging / sanity check
+#	if debug:
+#		printSomeLabels(labels, 10)
+#		dispSomeImages(inputs, 1)
+#
+#	# Preprocess
+#	lowDimInputs = DoPCA(flatInputs, numComponents=2)
+#	print(lowDimInputs.shape)
+#
+#	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
+#	Plot2D(lowDimInputs, labels, colors, 2)
 
 
 if __name__ == '__main__':

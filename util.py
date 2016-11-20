@@ -14,6 +14,7 @@ class DataTable:
 		# targetPath: path to csv file containing labels
 		self.images = imgPath + '/'
 		self.targets = targetPath
+		# Make sure there are only jpegs in this directory
 		self.files = np.array(os.listdir(self.images))
 
 		# Type of data set being processed

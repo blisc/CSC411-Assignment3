@@ -1,6 +1,6 @@
-# CSC411-Assignment3
-2016 CSC411 Machine Learning Assignment 3 Project
+# CSC411 Assignment 3
+CSC411: Machine Learning, Assignment 3
 
-Jason Li
+Jason Li and Nathan Kong
 
-Nathan Kong
+Dependencies: sklearn, skimage (and their dependencies)

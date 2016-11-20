@@ -26,10 +26,6 @@ def dispSomeImages(images, number):
 
 
 def main(debug=0):
-	pathToImages = 'Data/train/'
-	labelsFile = 'Data/train.csv'
-
-	
 
 #
 #	# Some debugging / sanity check

@@ -2,7 +2,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from util import DataTable, ShowImage, Plot2D, LoadData
-from preprocess import DoPCA, GetDataDistribution
+from preprocess import DoPCA, PlotHistogramOfLabels
 
 
 def printSomeLabels(labels, number):
@@ -27,6 +27,7 @@ def dispSomeImages(images, number):
 		ShowImage(image, i)
 
 
+
 def main(debug=0):
 
 	dataDir = 'Data/NPZ_data/'
@@ -34,11 +35,8 @@ def main(debug=0):
 							  'train_3001_4000.npz', 'train_4001_5000.npz', 'train_5001_6000.npz', \
 							  'train_6001_7000.npz']
 
-	allLabels, numUniqueLabels = GetDataDistribution(dataDir, listOfTrainingSetFiles)
+	PlotHistogramOfLabels(dataDir, listOfTrainingSetFiles)
 
-	plt.figure()
-	plt.hist(allLabels, numUniqueLabels)
-	plt.show()
 
 #	# Preprocess
 #	lowDimInputs = DoPCA(flatInputs, numComponents=2)
@@ -46,6 +44,7 @@ def main(debug=0):
 #
 #	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
 #	Plot2D(lowDimInputs, labels, colors, 2)
+
 
 
 if __name__ == '__main__':

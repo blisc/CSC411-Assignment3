@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 from collections import defaultdict
 from util import LoadData
@@ -34,5 +35,14 @@ def GetDataDistribution(dataDir, listOfFiles):
 	np.savetxt('labels.out', allLabels.T, delimiter=',')
 	numUnique = len(np.unique(allLabels))
 	return allLabels, numUnique
+
+
+def PlotHistogramOfLabels(dataDir, listOfFiles):
+	allLabels, numUniqueLabels = GetDataDistribution(dataDir, listOfFiles)
+	plt.figure()
+	plt.hist(allLabels, numUniqueLabels)
+	plt.show()
+	raw_input("Press Enter.")
+
 
 

@@ -58,7 +58,32 @@ def _initAutoEncoder(numFeatures, numHiddenUnits, activation='relu'):
 	autoencoder.compile(optimizer=sgd, loss='mean_squared_error')
 	return autoencoder, encoder, decoder
 
+def LoadAllTrainData(dataDir, listOfFiles):
+	allImages = np.empty(shape=(0,0))
+	allLabels = np.empty(shape=(0,0))
 
+	for datafile in listOfFiles:
+		print 'Reading ', datafile, '...'
+		datafiledir = dataDir + '/' + datafile
+		data = LoadData(datafiledir, 'train')
+		images = data['inputs_train']
+		if allImages.shape == (0,0):
+			allImages = images
+		else:
+			allImages = np.concatenate((allImages,images))
+		labels = data['targets_train']
+		assert labels.shape[1] == 2
+		labels = labels[:,1]
+		if allLabels.shape == (0,0):
+			allLabels = labels
+		else:
+			allLabels = np.hstack((allLabels,labels))
+			
+	oneHotLabels = _convertAllLabels(allLabels)
+
+	return allImages, oneHotLabels
+	
+	
 def DoAutoEncoder(dataDir, listOfFiles):
 	# Get first dataset
 	print listOfFiles[0]

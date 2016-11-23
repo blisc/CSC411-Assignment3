@@ -1,8 +1,5 @@
-import os
-import numpy as np
-import matplotlib.pyplot as plt
 from util import DataTable, ShowImage, Plot2D, LoadData
-from preprocess import DoPCA, PlotHistogramOfLabels
+from preprocess import DoPCA, PlotHistogramOfLabels, DoAutoEncoder
 
 
 def printSomeLabels(labels, number):
@@ -27,15 +24,19 @@ def dispSomeImages(images, number):
 		ShowImage(image, i)
 
 
-
 def main(debug=0):
 
 	dataDir = 'Data/NPZ_data/'
-	listOfTrainingSetFiles = ['train_1_1000.npz', 'train_1001_2000.npz', 'train_2001_3000.npz', \
-							  'train_3001_4000.npz', 'train_4001_5000.npz', 'train_5001_6000.npz', \
+	listOfTrainingSetFiles = ['train_1_1000.npz', 'train_1001_2000.npz', \
+							  'train_2001_3000.npz', 'train_3001_4000.npz', \
+							  'train_4001_5000.npz', 'train_5001_6000.npz', \
 							  'train_6001_7000.npz']
 
-	PlotHistogramOfLabels(dataDir, listOfTrainingSetFiles)
+	# Get the distribution of training set labels
+	#PlotHistogramOfLabels(dataDir, listOfTrainingSetFiles)
+
+	# Reduce dimensionality
+	DoAutoEncoder(dataDir, listOfTrainingSetFiles)
 
 
 #	# Preprocess
@@ -46,8 +47,8 @@ def main(debug=0):
 #	Plot2D(lowDimInputs, labels, colors, 2)
 
 
-
 if __name__ == '__main__':
 	main(debug=0)
+
 
 

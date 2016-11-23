@@ -6,13 +6,14 @@ Jason Li
 <br>
 Nathan Kong
 
-## Dependencies: sklearn, skimage
+## Dependencies: sklearn, skimage, tensorflow, keras, protobuf
 
 To install sklearn and skimage:
 <br>
 ~~~~
 sudo pip install scikit-learn --upgrade
 sudo pip install skimage --user --upgrade
+sudo pip install keras
 ~~~~
 <br>
 Try installing without the options first. The installation can fail if their dependencies are not installed.

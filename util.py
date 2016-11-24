@@ -143,6 +143,7 @@ def Plot2D(data, labels, colors, number):
 	plt.clf()
 	plt.scatter(data[:,0], data[:,1], c=colorList)
 	plt.show()
+
 	
 def LoadData(datafile, dataType):
 	assert datafile.endswith('.npz')

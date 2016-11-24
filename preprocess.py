@@ -91,6 +91,7 @@ def LoadAllTrainData(dataDir, listOfFiles):
 			allLabels = np.hstack((allLabels,labels))
 			
 	oneHotLabels = _convertAllLabels(allLabels)
+	return allImages, oneHotLabels
 
 
 def DoAutoEncoder(dataDir, listOfFiles):

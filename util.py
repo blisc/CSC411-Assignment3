@@ -2,6 +2,7 @@ import os, csv, sys
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.io import imread
+plt.ion()
 
 
 #=========================================================================
@@ -118,14 +119,17 @@ class DataTable:
 # Helper functions
 #=========================================================================
 
-def ShowImage(img, number=0):
+def ShowImage(img, number=0, gray=0):
 	# img is a 128x128x3 numpy array
 	plt.figure(number)
 	plt.clf()
-	plt.imshow(img)
+	if gray == 0:
+		plt.imshow(img)
+	else:
+		plt.imshow(img, cmap=plt.get_cmap('gray'))
 	plt.draw()
 	plt.show()
-	raw_input('Press Enter.')
+	#raw_input('Press Enter.')
 
 
 def Plot2D(data, labels, colors, number):

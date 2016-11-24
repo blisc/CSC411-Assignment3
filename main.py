@@ -1,5 +1,6 @@
 from util import DataTable, ShowImage, Plot2D, LoadData
-from preprocess import DoPCA, PlotHistogramOfLabels, DoAutoEncoder
+from preprocess import DoPCA, PlotHistogramOfLabels, DoAutoEncoder, LoadAllTrainData
+from model import Model
 
 
 def printSomeLabels(labels, number):
@@ -35,8 +36,15 @@ def main(debug=0):
 	# Get the distribution of training set labels
 	#PlotHistogramOfLabels(dataDir, listOfTrainingSetFiles)
 
+	images, labels = LoadAllTrainData('Data/NPZ_data/', listOfTrainingSetFiles)
+	data = dict()
+	data["inputs_train"] = images
+	data["targets_train"] = labels
+ 	model = Model(data)
+ 	model.train()
+	
 	# Reduce dimensionality
-	DoAutoEncoder(dataDir, listOfTrainingSetFiles)
+	#DoAutoEncoder(dataDir, listOfTrainingSetFiles)
 
 
 #	# Preprocess

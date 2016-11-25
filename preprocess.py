@@ -94,7 +94,7 @@ def LoadAllTrainData(dataDir, listOfFiles):
 	return allImages, oneHotLabels
 
 
-def DoAutoEncoder(dataDir, listOfFiles):
+def _DoAutoEncoder(dataDir, listOfFiles):
 	# Get first dataset
 	print listOfFiles[0]
 	datafiledir = dataDir + '/' + listOfFiles[0]
@@ -355,6 +355,40 @@ def _rgb2gray(img):
 	return np.dot(img[...,:3], [0.299, 0.587, 0.114])
 
 
+def SobelFilter(data):
+	# data: [samples,dim1,dim2,channels]
+	assert len(data.shape) == 4
+	assert data.shape[1] == data.shape[2] == 128
+	assert data.shape[3] == 3
+	xdim = data.shape[1]
+	ydim = data.shape[2]
+
+	# Grayscale
+	d_gray = np.dot(data,[0.299,0.587,0.114])
+	#ShowImage(d_gray[0,:,:], number=0, gray=1)
+	#print d_gray.shape
+	
+	cmap = plt.get_cmap('jet')
+	f_data = np.empty(d_gray.shape)
+	#f_data = np.empty(data.shape)
+	for i in range(0, d_gray.shape[0]):
+		# Do filtering
+		img = d_gray[i,:,:]
+		assert img.shape == (xdim,ydim)
+		sx = ndimage.sobel(img, axis=0)
+		sy = ndimage.sobel(img, axis=1)
+		sob = np.hypot(sx,sy)
+		assert sob.shape == (xdim,ydim)
+		#sob_rgb = cmap(sob)
+		#sob_rgb = np.delete(sob_rgb, 3, 2)
+		f_data[i,:,:] = sob
+
+	#print f_data.shape
+	#ShowImage(np.dstack((f_data[1,:,:],f_data[1,:,:],f_data[1,:,:])))
+	#ShowImage(f_data[0,:,:])
+	return f_data
+
+
 def GaussianFilter(data):
 	# data: [samples,dim1,dim2,channels]
 	assert len(data.shape) == 4
@@ -364,8 +398,88 @@ def GaussianFilter(data):
 	return f_data
 
 
+#=======================================================
+# Drawing and getting data for histograms
+#=======================================================
+
+def GetIntensityStats(dataDir, listOfFiles, statsType='avg', filterData='sobel'):
+	# Automatically uses sobel filtering
+
+	R_intensity = defaultdict(int)
+	classPopulation = defaultdict(int) # Number of samples from each class
+
+	for i in range(0, len(listOfFiles)):
+	#for i in range(0, 1):
+		print listOfFiles[i]
+		datafiledir = dataDir + '/' + listOfFiles[i]
+		d = LoadData(datafiledir, 'train')
+
+		inputs = SobelFilter(d['inputs_train'])
+		#np.savez('tmp', data=inputs)
+
+		targets = d['targets_train']
+		targets = targets[:,1]
+		for j in range(1,9):
+			# Get samples from class 'j'
+			idxSamples = np.where(targets == j)[0]
+			classSamples = inputs[idxSamples]
+			if statsType == 'avg':
+				red = np.sum(classSamples)
+			else:
+				numSamples = len(idxSamples)
+				imgSize = np.prod(classSamples.shape[1:])
+				r = np.reshape(classSamples, (numSamples, imgSize))
+				if statsType == 'max':
+					red = np.sum(np.amax(r,axis=1))
+				elif statsType == 'min':
+					red = np.sum(np.amin(r,axis=1))
+
+			R_intensity[j] += red
+			classPopulation[j] += len(classSamples)
+
+	# Hard code image size 128x128. Divide by (class population * 128 * 128)
+	# to get the average intensities.
+	for i in range(1,9):
+		classPop = classPopulation[i]
+		if statsType == 'avg':
+			R_intensity[i] = R_intensity[i] / (128 * 128 * classPop)
+		elif statsType == 'max' or statsType == 'min':
+			R_intensity[i] = R_intensity[i] / classPop
+
+	#print classPopulation
+	print R_intensity
+	return R_intensity
+
+
+def PlotIntensity(red, statsType='avg'):
+	numClasses = 8
+	redMeans = list()
+	for i in range(1,numClasses+1):
+		redMeans.append(red[i])
+
+	width = 0.35
+	entryWidth = width+0.2
+	ind = np.arange(numClasses)
+	fig, ax = plt.subplots()
+	rectsR = ax.bar(ind*entryWidth, redMeans, width, color='b', label='')
+	
+	# add some text for labels, title and axes ticks
+	if statsType == 'avg':
+		ax.set_ylabel('Average Intensity')
+		ax.set_title('Average Filter Values For Each Class')
+	elif statsType == 'max':
+		ax.set_ylabel('Max Value')
+		ax.set_title('Max Filter Values For Each Class')
+	elif statsType == 'min':
+		ax.set_ylabel('Min Intensity')
+		ax.set_title('Min Filter Values For Each Class')
+	ax.set_xticks(ind * entryWidth + 0.5*width)
+	ax.set_xticklabels(('1', '2', '3', '4', '5', '6', '7', '8'))
+	plt.show()
+
+
 def Get_RGB_Intensity_Stats(dataDir, listOfFiles, filterData='', statsType='avg'):
-	# filterData = {'', 'gauss'}
+	# filterData = {'', 'gauss', 'sobel'}
 	# statsType = {'avg', 'max', 'min'}
 
 	R_intensity = defaultdict(int)
@@ -468,7 +582,7 @@ def PlotAverageIntensities(red, green, blue, statsType='avg'):
 
 
 if __name__ == '__main__':
-	#trainingSetFile = 'Data/NPZ_data/train_1_1000.npz'
+	trainingSetFile = 'Data/NPZ_data/train_1_1000.npz'
 	#img = 41
 	#FilterImage(trainingSetFile, img)
 
@@ -478,11 +592,19 @@ if __name__ == '__main__':
 							  'train_4001_5000.npz', 'train_5001_6000.npz', \
 							  'train_6001_7000.npz']
 
+	# Sobel Filter
+	#d = np.load(trainingSetFile)['inputs_train']
+	#SobelFilter(d)
+
 	# Get average RGB intensity histogram
 	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, filterData='gauss')
 	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, statsType='max')
-	R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, statsType='min')
-	PlotAverageIntensities(R, G, B, statsType='min')
+	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, statsType='min')
+	#PlotAverageIntensities(R, G, B, statsType='min')
+
+
+	e = GetIntensityStats(dataDir, listOfTrainingSetFiles, statsType='avg')
+	PlotIntensity(e, statsType='avg')
 
 
 

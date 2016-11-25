@@ -19,7 +19,7 @@ def linear(input, output_dim, wd, scope = None, bias=0.0):
 		
 		return tf.matmul(input, weights) + bias
 		
-def conv2d(input, kernel_size, wd, scope = None, bias=0.0):
+def conv2d(input, kernel_size, wd, scope = None, bias=0.0, stride = [1, 1, 1, 1]):
 	"""
 	returns a convolution layers
 	input (tensor): data going into the convolution layer
@@ -31,7 +31,7 @@ def conv2d(input, kernel_size, wd, scope = None, bias=0.0):
 	with tf.variable_scope(scope or 'conv'):
 		weights = tf.get_variable("weights", kernel_size, initializer=tf.contrib.layers.xavier_initializer(uniform=False))
 		bias = tf.get_variable("biases", [kernel_size[3]], initializer=tf.constant_initializer(bias))
-		conv = tf.nn.conv2d(input, weights, strides=[1, 1, 1, 1], padding='SAME')
+		conv = tf.nn.conv2d(input, weights, strides=stride, padding='SAME')
 		
 		variable_summaries(weights, (scope or 'conv2d')+'_weights')
 		if wd is not None:
@@ -104,7 +104,7 @@ class DataDistribution:
 		return self.train_images[start:end], self.train_labels[start:end]
 		
 class Model():
-	def __init__(self, dataset, batchSize=128, trainingIterations = 1000000, learningRate=0.0003, weight_decay = 0.0):
+	def __init__(self, batchSize=128, trainingIterations = 1000000, learningRate=0.0003, weight_decay = 0.0):
 		self.batchSize = batchSize
 		self.input_size = [None, 128, 128, 3]
 		self.kernel_1 = [5, 5, 3, 64]
@@ -114,20 +114,16 @@ class Model():
 		self.trainingIterations = trainingIterations
 		self.learningRate = learningRate
 		self.weight_decay = weight_decay
-		self.dataDistribution = DataDistribution(dataset)
-		
-		self.createModel()
-		self.loss()
-		self.train_step()
 	
-	def createModel(self):
+	def createModelCNN1(self, test=False):
+		print "creating model CNN1 with test set to {}".format(test)
 		self.input = tf.placeholder(tf.float32, self.input_size)
 	
 		self.conv1 = tf.nn.relu(conv2d(self.input, self.kernel_1, self.weight_decay, scope="conv1"))
 		self.pool1 = max_pool(self.conv1, scope="max_pool1")
 		
 		self.conv2 = tf.nn.relu(conv2d(self.pool1, self.kernel_2, self.weight_decay, scope="conv2"))
-		self.pool2 = max_pool(self.conv2, scope="max_pool1")
+		self.pool2 = max_pool(self.conv2, scope="max_pool2")
 		
 		# Need to define dimensionality of pool2 array
 		# cut 128*128 by 2 and by 2 again * self.kernel_2[3]
@@ -139,7 +135,9 @@ class Model():
 		
 		self.output = linear(self.fc2, self.output_labels, self.weight_decay, scope="softmax")
 		
-	def loss(self):
+		if test:
+			self.softmax = tf.nn.softmax(self.output)
+		
 		self.labels = tf.placeholder(tf.float32, [None, self.output_labels])
 		cross_entropy = tf.nn.softmax_cross_entropy_with_logits(self.output, self.labels)
 		cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
@@ -148,10 +146,48 @@ class Model():
 		self.loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
 		tf.scalar_summary(self.loss.op.name, self.loss)
 
-	def train_step(self):
+		self.optimizer = optimizer(self.loss, self.learningRate, tf.trainable_variables())
+
+	def createModelCNN2(self, test=False):
+		print "creating model CNN2 with test set to {}".format(test)
+		self.input = tf.placeholder(tf.float32, self.input_size)
+	
+		self.conv1 = tf.nn.relu(conv2d(self.input, [10, 10, 3, 64], self.weight_decay, scope="conv1", stride=[1,2,2,1]))
+		self.pool1 = max_pool(self.conv1, scope="max_pool1", kernel_size=[1,3,3,1])
+		
+		self.conv2 = tf.nn.relu(conv2d(self.pool1, [5, 5, 64, 192], self.weight_decay, scope="conv2"))
+		self.pool2 = max_pool(self.conv2, scope="max_pool2")
+		
+		self.conv3 = tf.nn.relu(conv2d(self.pool2, [3, 3, 192, 256], self.weight_decay, scope="conv3"))
+		self.conv4 = tf.nn.relu(conv2d(self.conv3, [3, 3, 256, 128], self.weight_decay, scope="conv4"))
+		self.conv5 = tf.nn.relu(conv2d(self.conv5, [3, 3, 128, 128], self.weight_decay, scope="conv5"))
+		self.pool5 = max_pool(self.conv5, scope="max_pool5")
+		
+		# Need to define dimensionality of pool2 array
+		# cut 128*128 by 2 and by 2 again * self.kernel_2[3]
+		reshape_size = 8*8*128
+		self.pool5_flat = tf.reshape(self.pool5, [-1,reshape_size])
+		self.fc1 = tf.nn.relu(linear(self.pool5_flat, self.linear_hidden_size, self.weight_decay, scope="fc1"))
+		
+		self.fc2 = tf.nn.relu(linear(self.fc1, self.linear_hidden_size, self.weight_decay, scope="fc2"))
+		
+		self.output = linear(self.fc2, self.output_labels, self.weight_decay, scope="softmax")
+		
+		if test:
+			self.softmax = tf.nn.softmax(self.output)
+		
+		self.labels = tf.placeholder(tf.float32, [None, self.output_labels])
+		cross_entropy = tf.nn.softmax_cross_entropy_with_logits(self.output, self.labels)
+		cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
+		tf.add_to_collection('losses', cross_entropy_mean)
+		
+		self.loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
+		tf.scalar_summary(self.loss.op.name, self.loss)
+
 		self.optimizer = optimizer(self.loss, self.learningRate, tf.trainable_variables())
 		
-	def train(self, restore=False):
+	def train(self, dataset, restore=False):
+		self.dataDistribution = DataDistribution(dataset)
 		with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)) as sess:
 			summary = tf.merge_all_summaries()
 			summary_writer = tf.train.SummaryWriter(FLAGS.checkpoint_dir, sess.graph)
@@ -176,3 +212,14 @@ class Model():
 				if i % 25 == 0 or (i+1) == self.trainingIterations:
 					checkpoint_file = os.path.join(FLAGS.checkpoint_dir, 'checkpoint')
 					saver.save(sess, checkpoint_file, global_step=i)
+					
+	def inference(self, restoreFile, testData):
+		with tf.Session(config=tf.ConfigProto(allow_soft_placement=True,log_device_placement=False)) as sess:
+			tf.initialize_all_variables().run()
+			saver = tf.train.Saver()
+			saver.restore(sess,restoreFile)
+			print "successfully restored from {}".format(restoreFile)
+			data_in = testData
+			results = sess.run(self.softmax, feed_dict={self.input:data_in})
+			labels = np.argmax(results, axis=1)
+			np.savetxt("./results.txt", labels, delimiter='\n')

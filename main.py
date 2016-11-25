@@ -36,22 +36,15 @@ def main(debug=0):
 	# Get the distribution of training set labels
 	#PlotHistogramOfLabels(dataDir, listOfTrainingSetFiles)
 
-	# Train Model
-	# images, labels = LoadAllTrainData('Data/NPZ_data/', listOfTrainingSetFiles)
-	# data = dict()
-	# data["inputs_train"] = images
-	# data["targets_train"] = labels
- 	# model = Model(data)
- 	# model.train()
-	
-	# Get inference results
-	#testImages = LoadData('Data/NPZ_data/test_1_970.npz', 'test')
-	#model = Model()
-	#model.createModelCNN1(True)
-	#model.inference("./results/CNN1/checkpoint-250",testImages['inputs_test'])
+	#images, labels = LoadAllTrainData('Data/NPZ_data/', listOfTrainingSetFiles)
+	#data = dict()
+	#data["inputs_train"] = images
+	#data["targets_train"] = labels
+ 	#model = Model(data)
+ 	#model.train()
 	
 	# Reduce dimensionality
-	#DoAutoEncoder(dataDir, listOfTrainingSetFiles)
+	DoAutoEncoder(dataDir, listOfTrainingSetFiles)
 
 
 #	# Preprocess

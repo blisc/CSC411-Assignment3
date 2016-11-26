@@ -288,9 +288,9 @@ def DoPCA(dataDir, listOfFiles, numComponents=10):
 	print "Doing PCA..."
 	pca = PCA(n_components=numComponents)
 	lowDimInputs = pca.fit_transform(inputs)
-	print(pca.explained_variance_ratio_)
+	explainedVariance = pca.explained_variance_ratio_
 
-	return lowDimInputs
+	return lowDimInputs, explainedVariance
 
 
 def GetDataDistribution(dataDir, listOfFiles):

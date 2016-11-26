@@ -1,6 +1,7 @@
 from util import DataTable, ShowImage, Plot2D, LoadData
 from preprocess import DoPCA, PlotHistogramOfLabels, DoAutoEncoder, LoadAllTrainData
 from model import Model
+import matplotlib.pyplot as plt
 
 
 def printSomeLabels(labels, number):
@@ -48,8 +49,11 @@ def main(debug=0):
 
 
 	# Preprocess
-	lowDimInputs = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=1000)
+	lowDimInputs, explainedVariance = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=10000)
 	print(lowDimInputs.shape)
+	plt.plot(explainedVariance)
+	plt.show()
+	
 
 #	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
 #	Plot2D(lowDimInputs, labels, colors, 2)

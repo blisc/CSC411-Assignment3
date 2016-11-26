@@ -272,9 +272,12 @@ def DoNN(dataDir, listOfFiles):
 		i += 1
 
 
-def DoPCA(inputs, numComponents=10):
+def DoPCA(dataDir, listOfFiles, numComponents=10):
 	# Performs PCA and transforms data into numComponents dimension space
-	# inputs shape: [1, numFeatures]
+	allImages, _ = LoadAllTrainData(dataDir, listOfFiles)
+	numSamples = allImages.shape[0]
+	numFeatures = np.prod(allImages.shape[1:])
+	allImages = allImages.reshape(numSamples, numFeatures)
 
 	pca = PCA(n_components=numComponents)
 	lowDimInputs = pca.fit_transform(inputs)
@@ -403,48 +406,52 @@ def GaussianFilter(data):
 #=======================================================
 
 def GetIntensityStats(dataDir, listOfFiles, statsType='avg', filterData='sobel'):
-	# Automatically uses sobel filtering
+	# filterData = {'', 'gauss', 'sobel'}
+	# statsType = {'avg', 'max', 'min'}
 
-	R_intensity = defaultdict(int)
+	numClasses = 8
+	R_intensity = dict()
+	for i in range(1,9):
+		R_intensity[i] = np.empty((0,))
+
 	classPopulation = defaultdict(int) # Number of samples from each class
 
 	for i in range(0, len(listOfFiles)):
-	#for i in range(0, 1):
 		print listOfFiles[i]
 		datafiledir = dataDir + '/' + listOfFiles[i]
 		d = LoadData(datafiledir, 'train')
-
 		inputs = SobelFilter(d['inputs_train'])
-		#np.savez('tmp', data=inputs)
-
 		targets = d['targets_train']
 		targets = targets[:,1]
-		for j in range(1,9):
+		assert inputs.shape[0] == targets.shape[0]
+
+		for j in range(1,numClasses+1):
 			# Get samples from class 'j'
 			idxSamples = np.where(targets == j)[0]
 			classSamples = inputs[idxSamples]
-			if statsType == 'avg':
-				red = np.sum(classSamples)
-			else:
-				numSamples = len(idxSamples)
-				imgSize = np.prod(classSamples.shape[1:])
-				r = np.reshape(classSamples, (numSamples, imgSize))
-				if statsType == 'max':
-					red = np.sum(np.amax(r,axis=1))
-				elif statsType == 'min':
-					red = np.sum(np.amin(r,axis=1))
+			numSamples = len(idxSamples)
+			imgSize = np.prod(classSamples[:,:,:].shape[1:])
 
-			R_intensity[j] += red
+			r = np.reshape(classSamples[:,:,:], (numSamples, imgSize))
+			red = np.empty((0,))
+
+			if statsType == 'avg':
+				red = np.hstack((red, np.mean(r, axis=1)))
+			else:
+				if statsType == 'max':
+					red = np.hstack((red, np.amax(r,axis=1)))
+				elif statsType == 'min':
+					red = np.hstack((red, np.amin(r,axis=1)))
+
+			R_intensity[j] = np.hstack((R_intensity[j], red))
 			classPopulation[j] += len(classSamples)
 
-	# Hard code image size 128x128. Divide by (class population * 128 * 128)
-	# to get the average intensities.
-	for i in range(1,9):
+	for i in range(1,numClasses+1):
+		print i, ':', len(R_intensity[i])
+
+	for i in range(1,numClasses+1):
 		classPop = classPopulation[i]
-		if statsType == 'avg':
-			R_intensity[i] = R_intensity[i] / (128 * 128 * classPop)
-		elif statsType == 'max' or statsType == 'min':
-			R_intensity[i] = R_intensity[i] / classPop
+		R_intensity[i] = (np.mean(R_intensity[i]), np.std(R_intensity[i]))
 
 	#print classPopulation
 	print R_intensity
@@ -454,14 +461,17 @@ def GetIntensityStats(dataDir, listOfFiles, statsType='avg', filterData='sobel')
 def PlotIntensity(red, statsType='avg'):
 	numClasses = 8
 	redMeans = list()
+	redStd = list()
 	for i in range(1,numClasses+1):
-		redMeans.append(red[i])
+		redMeans.append(red[i][0])
+		redStd.append(red[i][1])
 
 	width = 0.35
 	entryWidth = width+0.2
 	ind = np.arange(numClasses)
 	fig, ax = plt.subplots()
-	rectsR = ax.bar(ind*entryWidth, redMeans, width, color='b', label='')
+	rectsR = ax.bar(ind*entryWidth, redMeans, width, color='b', label='', \
+					yerr=redStd, error_kw=dict(ecolor='black'))
 	
 	# add some text for labels, title and axes ticks
 	if statsType == 'avg':
@@ -482,9 +492,15 @@ def Get_RGB_Intensity_Stats(dataDir, listOfFiles, filterData='', statsType='avg'
 	# filterData = {'', 'gauss', 'sobel'}
 	# statsType = {'avg', 'max', 'min'}
 
-	R_intensity = defaultdict(int)
-	G_intensity = defaultdict(int)
-	B_intensity = defaultdict(int)
+	numClasses = 8
+	R_intensity = dict()
+	G_intensity = dict()
+	B_intensity = dict()
+	for i in range(1,9):
+		R_intensity[i] = np.empty((0,))
+		G_intensity[i] = np.empty((0,))
+		B_intensity[i] = np.empty((0,))
+
 	classPopulation = defaultdict(int) # Number of samples from each class
 
 	for i in range(0, len(listOfFiles)):
@@ -499,71 +515,83 @@ def Get_RGB_Intensity_Stats(dataDir, listOfFiles, filterData='', statsType='avg'
 		targets = targets[:,1]
 		assert inputs.shape[0] == targets.shape[0]
 
-		for j in range(1,9):
+		for j in range(1,numClasses+1):
 			# Get samples from class 'j'
 			idxSamples = np.where(targets == j)[0]
 			classSamples = inputs[idxSamples]
+			numSamples = len(idxSamples)
+			imgSize = np.prod(classSamples[:,:,:,0].shape[1:])
+
+			r = np.reshape(classSamples[:,:,:,0], (numSamples, imgSize))
+			g = np.reshape(classSamples[:,:,:,1], (numSamples, imgSize))
+			b = np.reshape(classSamples[:,:,:,2], (numSamples, imgSize))
+			red = np.empty((0,))
+			green = np.empty((0,))
+			blue = np.empty((0,))
 
 			if statsType == 'avg':
-				red = np.sum(classSamples[:,:,:,0])
-				green = np.sum(classSamples[:,:,:,1])
-				blue = np.sum(classSamples[:,:,:,2])
+				red = np.hstack((red, np.mean(r, axis=1)))
+				green = np.hstack((green, np.mean(g, axis=1)))
+				blue = np.hstack((blue, np.mean(b, axis=1)))
 			else:
-				numSamples = len(idxSamples)
-				imgSize = np.prod(classSamples[:,:,:,0].shape[1:])
-				r = np.reshape(classSamples[:,:,:,0], (numSamples, imgSize))
-				g = np.reshape(classSamples[:,:,:,1], (numSamples, imgSize))
-				b = np.reshape(classSamples[:,:,:,2], (numSamples, imgSize))
 				if statsType == 'max':
-					red = np.sum(np.amax(r,axis=1))
-					green = np.sum(np.amax(g,axis=1))
-					blue = np.sum(np.amax(b,axis=1))
+					red = np.hstack((red, np.amax(r,axis=1)))
+					green = np.hstack((green, np.amax(g,axis=1)))
+					blue = np.hstack((blue, np.amax(b,axis=1)))
 				elif statsType == 'min':
-					red = np.sum(np.amin(r,axis=1))
-					green = np.sum(np.amin(g,axis=1))
-					blue = np.sum(np.amin(b,axis=1))
+					red = np.hstack((red, np.amin(r,axis=1)))
+					green = np.hstack((green, np.amin(g,axis=1)))
+					blue = np.hstack((blue, np.amin(b,axis=1)))
 
-			R_intensity[j] += red
-			G_intensity[j] += green
-			B_intensity[j] += blue
+			R_intensity[j] = np.hstack((R_intensity[j], red))
+			G_intensity[j] = np.hstack((G_intensity[j], green))
+			B_intensity[j] = np.hstack((B_intensity[j], blue))
 			classPopulation[j] += len(classSamples)
 
-	# Hard code image size 128x128. Divide by (class population * 128 * 128)
-	# to get the average intensities.
-	for i in range(1,9):
+	for i in range(1,numClasses+1):
+		assert len(R_intensity[i]) == len(G_intensity[i]) == len(B_intensity[i])
+		print i, ':', len(R_intensity[i])
+
+	for i in range(1,numClasses+1):
 		classPop = classPopulation[i]
-		if statsType == 'avg':
-			R_intensity[i] = R_intensity[i] / (128 * 128 * classPop)
-			G_intensity[i] = G_intensity[i] / (128 * 128 * classPop)
-			B_intensity[i] = B_intensity[i] / (128 * 128 * classPop)
-		elif statsType == 'max' or statsType == 'min':
-			R_intensity[i] = R_intensity[i] / classPop
-			G_intensity[i] = G_intensity[i] / classPop
-			B_intensity[i] = B_intensity[i] / classPop
+		R_intensity[i] = (np.mean(R_intensity[i]), np.std(R_intensity[i]))
+		G_intensity[i] = (np.mean(G_intensity[i]), np.std(G_intensity[i]))
+		B_intensity[i] = (np.mean(B_intensity[i]), np.std(B_intensity[i]))
 
 	#print classPopulation
-	#print R_intensity, G_intensity, B_intensity
+	print R_intensity, G_intensity, B_intensity
 	return R_intensity, G_intensity, B_intensity
 
 
 def PlotAverageIntensities(red, green, blue, statsType='avg'):
 	numClasses = 8
+
 	redMeans = list()
+	redStd = list()
 	greenMeans = list()
+	greenStd = list()
 	blueMeans = list()
+	blueStd = list()
+
 	for i in range(1,numClasses+1):
-		redMeans.append(red[i])
-		greenMeans.append(green[i])
-		blueMeans.append(blue[i])
+		redMeans.append(red[i][0])
+		greenMeans.append(green[i][0])
+		blueMeans.append(blue[i][0])
+		redStd.append(red[i][1])
+		greenStd.append(green[i][1])
+		blueStd.append(blue[i][1])
 
 	width = 0.35
 	entryWidth = 3*width+0.2
 	ind = np.arange(numClasses)
 	fig, ax = plt.subplots()
-	rectsR = ax.bar(ind*entryWidth, redMeans, width, color='r', label='Red')
-	rectsG = ax.bar(ind*entryWidth+width, greenMeans, width, color='g', label='Green')
-	rectsB = ax.bar(ind*entryWidth+(2*width), blueMeans, width, color='b', label='Blue')
-	
+	rectsR = ax.bar(ind*entryWidth, redMeans, width, color='r', label='Red', \
+					yerr=redStd, error_kw=dict(ecolor='black'))
+	rectsG = ax.bar(ind*entryWidth+width, greenMeans, width, color='g', label='Green', \
+					yerr=greenStd, error_kw=dict(ecolor='black'))
+	rectsB = ax.bar(ind*entryWidth+(2*width), blueMeans, width, color='b', label='Blue', \
+					yerr=blueStd, error_kw=dict(ecolor='black'))
+
 	# add some text for labels, title and axes ticks
 	if statsType == 'avg':
 		ax.set_ylabel('Average Intensity (Normalized)')
@@ -597,14 +625,15 @@ if __name__ == '__main__':
 	#SobelFilter(d)
 
 	# Get average RGB intensity histogram
-	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, filterData='gauss')
+	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles)
 	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, statsType='max')
 	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, statsType='min')
-	#PlotAverageIntensities(R, G, B, statsType='min')
+	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, filterData='gauss', statsType='min')
+	#PlotAverageIntensities(R, G, B, statsType='avg')
 
 
-	e = GetIntensityStats(dataDir, listOfTrainingSetFiles, statsType='avg')
-	PlotIntensity(e, statsType='avg')
+	e = GetIntensityStats(dataDir, listOfTrainingSetFiles, statsType='max')
+	PlotIntensity(e, statsType='max')
 
 
 

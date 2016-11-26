@@ -274,11 +274,18 @@ def DoNN(dataDir, listOfFiles):
 
 def DoPCA(dataDir, listOfFiles, numComponents=10):
 	# Performs PCA and transforms data into numComponents dimension space
+	# Assumes allImages shape: [numSamples, xdim, ydim, rgb]
+
+	print "Loading images..."
 	allImages, _ = LoadAllTrainData(dataDir, listOfFiles)
+	print allImages.shape
+	assert allImages.shape == (7000,128,128,3)
 	numSamples = allImages.shape[0]
 	numFeatures = np.prod(allImages.shape[1:])
 	allImages = allImages.reshape(numSamples, numFeatures)
+	print "Flattened images shape: ", allImages.shape
 
+	print "Doing PCA..."
 	pca = PCA(n_components=numComponents)
 	lowDimInputs = pca.fit_transform(inputs)
 	print(pca.explained_variance_ratio_)

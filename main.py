@@ -48,7 +48,7 @@ def main(debug=0):
 
 
 	# Preprocess
-	lowDimInputs = DoPCA(dataDir, listOfTrainingSetFiles)
+	lowDimInputs = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=1000)
 	print(lowDimInputs.shape)
 
 #	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']

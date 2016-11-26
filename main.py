@@ -44,13 +44,13 @@ def main(debug=0):
  	#model.train()
 	
 	# Reduce dimensionality
-	DoAutoEncoder(dataDir, listOfTrainingSetFiles)
+	#DoAutoEncoder(dataDir, listOfTrainingSetFiles)
 
 
-#	# Preprocess
-#	lowDimInputs = DoPCA(flatInputs, numComponents=2)
-#	print(lowDimInputs.shape)
-#
+	# Preprocess
+	lowDimInputs = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=1000)
+	print(lowDimInputs.shape)
+
 #	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
 #	Plot2D(lowDimInputs, labels, colors, 2)
 

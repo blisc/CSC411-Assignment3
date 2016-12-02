@@ -20,7 +20,7 @@ Try installing without the options first. The installation can fail if their dep
 <br>
 If so, follow the instructions to install the dependencies.
 
-It also uses the VGG16 pretrained model form https://github.com/fchollet/deep-learning-models
+It also uses the VGG16 pretrained model from https://github.com/fchollet/deep-learning-models.
 I also made some changes to VGG16.py for testing but it can be safely ignored.
 
 ## How to run

@@ -2,11 +2,13 @@
 # dimensionality reduction
 
 import numpy as np
+import matplotlib as mpl
+mpl.use('Agg')
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-from sklearn.decomposition import PCA
-from sklearn.neural_network import MLPClassifier
+# from sklearn.decomposition import PCA
+# from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import MultiLabelBinarizer
 
 from keras.layers import Input, Dense
@@ -69,31 +71,40 @@ def _initAutoEncoder(numFeatures, numHiddenUnits, activation='relu'):
 	return autoencoder, encoder, decoder
 
 
-def LoadAllTrainData(dataDir, listOfFiles):
+def LoadAllTrainData(dataDir, listOfFiles, prefix=None):
 	allImages = np.empty(shape=(0,0))
 	allLabels = np.empty(shape=(0,0))
 
 	for datafile in listOfFiles:
-		print 'Reading ', datafile, '...'
-		datafiledir = dataDir + '/' + datafile
-		data = LoadData(datafiledir, 'train')
+		datafiledir = dataDir + datafile
+		if prefix is not None:
+			datafiledir = dataDir + prefix + datafile
+		print 'Reading ',datafiledir, '...'
+		data = LoadData(datafiledir, 'train', prefix)
 		images = data['inputs_train']
 		if allImages.shape == (0,0):
 			allImages = images
 		else:
 			allImages = np.concatenate((allImages,images))
-		labels = data['targets_train']
-		assert labels.shape[1] == 2
-		labels = labels[:,1]
-		if allLabels.shape == (0,0):
-			allLabels = labels
-		else:
-			allLabels = np.hstack((allLabels,labels))
+		if prefix is not "VGG16_":
+			labels = data['targets_train']
+			assert labels.shape[1] == 2
+			labels = labels[:,1]
+			if allLabels.shape == (0,0):
+				allLabels = labels
+			else:
+				allLabels = np.hstack((allLabels,labels))
 			
 	oneHotLabels = _convertAllLabels(allLabels)
 	return allImages, oneHotLabels
 
-
+def GetAllLabels(labelsFile):
+	# Returns array of labels: [num_samples, 2]
+	labels = np.genfromtxt(labelsFile, delimiter=',')
+	labels = np.delete(labels, 2, axis=1)
+	labels = np.delete(labels, 0, axis=0)
+	oneHotLabels = _convertAllLabels(labels[:,1])
+	return labels, oneHotLabels
 def DoAutoEncoder(dataDir, listOfFiles):
 	# Get first dataset
 	print listOfFiles[0]
@@ -112,7 +123,7 @@ def DoAutoEncoder(dataDir, listOfFiles):
 	# Fit first data set
 	early_stop = EarlyStopping(min_delta=0.000001)
 	hist = autoencoder.fit(inputs, inputs, batch_size=20, shuffle=True, \
-						   nb_epoch=70, validation_split=0.2, callbacks=[early_stop])
+							 nb_epoch=70, validation_split=0.2, callbacks=[early_stop])
 	tmp = np.array(hist.history['loss'])
 	print (hist.history['loss'])
 
@@ -135,7 +146,7 @@ def DoAutoEncoder(dataDir, listOfFiles):
 		assert numFeatures == np.prod(inputs.shape[1:])
 		inputs = inputs.reshape(numSamples, numFeatures)
 		hist = autoencoder.fit(inputs, inputs, batch_size=20, shuffle=True, \
-							   nb_epoch=70, validation_split=0.2, callbacks=[early_stop])
+								 nb_epoch=70, validation_split=0.2, callbacks=[early_stop])
 		tmp = np.hstack((tmp, hist.history['loss']))
 		print(hist.history['loss'])
 		plt.figure()
@@ -186,7 +197,7 @@ def DoAutoEncoder(dataDir, listOfFiles):
 			np.random.shuffle(rnd_idx)
 			inputs = inputs[rnd_idx]
 			hist = autoencoder.fit(inputs, inputs, batch_size=10, shuffle=True, \
-								   nb_epoch=10, validation_split=0.2, callbacks=[early_stop])
+									 nb_epoch=10, validation_split=0.2, callbacks=[early_stop])
 			losses = np.hstack((losses, hist.history['loss']))
 
 	np.savez('loss', loss=losses)
@@ -296,8 +307,8 @@ def GetDataDistribution(dataDir, listOfFiles):
 def PlotHistogramOfLabels(dataDir, listOfFiles):
 	allLabels, numUniqueLabels = GetDataDistribution(dataDir, listOfFiles)
 	plt.figure()
-	plt.hist(allLabels, numUniqueLabels)
-	plt.show()
+	plt.hist(allLabels[-88:], numUniqueLabels)
+	plt.savefig("Image.png")
 	raw_input("Press Enter.")
 
 
@@ -474,9 +485,9 @@ if __name__ == '__main__':
 
 	dataDir = 'Data/NPZ_data'
 	listOfTrainingSetFiles = ['train_1_1000.npz', 'train_1001_2000.npz', \
-							  'train_2001_3000.npz', 'train_3001_4000.npz', \
-							  'train_4001_5000.npz', 'train_5001_6000.npz', \
-							  'train_6001_7000.npz']
+								'train_2001_3000.npz', 'train_3001_4000.npz', \
+								'train_4001_5000.npz', 'train_5001_6000.npz', \
+								'train_6001_7000.npz']
 
 	# Get average RGB intensity histogram
 	#R, G, B = Get_RGB_Intensity_Stats(dataDir, listOfTrainingSetFiles, filterData='gauss')

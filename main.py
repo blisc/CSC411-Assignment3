@@ -4,6 +4,7 @@ from model import Model
 from deeplearningmodels.imagenet_utils import preprocess_input, decode_predictions
 import scipy.io as scio
 import numpy as np
+import matplotlib.pyplot as plt
 
 def printSomeLabels(labels, number):
 	# labels shape: [num_samples, 1]
@@ -179,12 +180,15 @@ def main(debug=0):
 	
 	# Reduce dimensionality
 	# DoAutoEncoder(dataDir, listOfTrainingSetFiles)
+	#DoAutoEncoder(dataDir, listOfTrainingSetFiles)
 
+	# Preprocess
+	lowDimInputs, explainedVariance = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=10000)
+	print(lowDimInputs.shape)
+	plt.plot(explainedVariance)
+	plt.show()
+	
 
-#	# Preprocess
-#	lowDimInputs = DoPCA(flatInputs, numComponents=2)
-#	print(lowDimInputs.shape)
-#
 #	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
 #	Plot2D(lowDimInputs, labels, colors, 2)
 

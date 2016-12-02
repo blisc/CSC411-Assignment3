@@ -2,6 +2,7 @@ import os, csv, sys
 import numpy as np
 import matplotlib.pyplot as plt
 from skimage.io import imread
+from scipy.misc import imresize
 plt.ion()
 
 
@@ -35,7 +36,7 @@ class DataTable:
 		# Hard code set sizes
 		if self._data == 'train':
 			subsets = [range(1,1001), range(1001,2001), range(2001,3001), range(3001,4001), \
-					   range(4001,5001), range(5001,6001), range(6001,7001)]
+						 range(4001,5001), range(5001,6001), range(6001,7001)]
 		elif self._data == 'test':
 			subsets = [range(1,self.files.shape[0]+1)]
 		else:
@@ -49,9 +50,9 @@ class DataTable:
 			# "-1" for indexing
 			self._processImagesSubset(images = subset-1)
 			if self._data == 'train':
-				name = 'train_' + str(start) + '_' + str(end)
+				name = '224_train_' + str(start) + '_' + str(end)
 			elif self._data == 'test':
-				name = 'test_' + str(start) + '_' + str(end)
+				name = '224_test_' + str(start) + '_' + str(end)
 			else:
 				print("Data type not supported.")
 				sys.exit(1)
@@ -89,12 +90,13 @@ class DataTable:
 				print '.',
 				sys.stdout.flush()
 			t = imread(self.images + f)
+			t = imresize(t,(224,224),interp="lanczos")
 			tmp.append(t)
 			i += 1
 
 		self._inputs = np.array(tmp)
 		# Normalize
-		self._inputs = np.divide(self._inputs, 255.0)
+		# self._inputs = np.divide(self._inputs, 255.0)
 
 		assert len(self._inputs.shape) == 4
 
@@ -128,7 +130,7 @@ def ShowImage(img, number=0, gray=0):
 	else:
 		plt.imshow(img, cmap=plt.get_cmap('gray'))
 	plt.draw()
-	plt.show()
+	plt.savefig("Test_{}.png".format(number))
 	#raw_input('Press Enter.')
 
 
@@ -145,13 +147,14 @@ def Plot2D(data, labels, colors, number):
 	plt.show()
 
 	
-def LoadData(datafile, dataType):
+def LoadData(datafile, dataType, prefix=None):
 	assert datafile.endswith('.npz')
 	d = np.load(datafile)
 	data = dict()
 	if dataType == 'train':
 		data['inputs_train'] = d['inputs_train']
-		data['targets_train'] = d['targets_train']
+		if prefix is not "VGG16_":
+			data['targets_train'] = d['targets_train']
 	elif dataType == 'test':
 		data['inputs_test'] = d['inputs_test']
 	else:

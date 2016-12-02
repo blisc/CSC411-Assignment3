@@ -164,6 +164,14 @@ def LoadData(datafile, dataType, prefix=None):
 	return data
 
 
+def GetAllLabels(labelsFile):
+	# Returns array of labels: [num_samples, 2]
+	labels = np.genfromtxt(labelsFile, delimiter=',')
+	labels = np.delete(labels, 2, axis=1)
+	labels = np.delete(labels, 0, axis=0)
+	return labels
+
+
 if __name__ == '__main__':
 	# Run this file in order to get the data files (only needs to be run once
 	# for the set of data.

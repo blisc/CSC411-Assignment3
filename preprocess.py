@@ -7,9 +7,9 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 from collections import defaultdict
 
-# from sklearn.decomposition import PCA
-# from sklearn.neural_network import MLPClassifier
-from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn.decomposition import PCA, IncrementalPCA
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import MultiLabelBinarizer, StandardScaler
 
 from keras.layers import Input, Dense
 from keras.models import Model, load_model
@@ -71,7 +71,7 @@ def _initAutoEncoder(numFeatures, numHiddenUnits, activation='relu'):
 	return autoencoder, encoder, decoder
 
 
-def LoadAllTrainData(dataDir, listOfFiles, prefix=None):
+def LoadAllTrainData(dataDir, listOfFiles, prefix=None, binarize=True):
 	allImages = np.empty(shape=(0,0))
 	allLabels = np.empty(shape=(0,0))
 
@@ -95,8 +95,10 @@ def LoadAllTrainData(dataDir, listOfFiles, prefix=None):
 			else:
 				allLabels = np.hstack((allLabels,labels))
 			
-	oneHotLabels = _convertAllLabels(allLabels)
-	return allImages, oneHotLabels
+	if binarize:
+		allLabels = _convertAllLabels(allLabels)
+
+	return allImages, allLabels
 
 def GetAllLabels(labelsFile):
 	# Returns array of labels: [num_samples, 2]
@@ -284,12 +286,65 @@ def DoNN(dataDir, listOfFiles):
 		i += 1
 
 
-def DoPCA(dataDir, listOfFiles, numComponents=10):
+def TransformData(inputs, ipca, scaler):
+	# inputs: [num_samples, num_features]
+	# Transform data into new feature space
+	assert isinstance(ipca, IncrementalPCA)
+	assert isinstance(scaler, StandardScaler)
+	inputs = scaler.transform(inputs)
+	return ipca.transform(inputs)
+
+
+def StandardizeData(dataDir, listOfFiles):
+	# Standardizes data to have 0 mean and 1 variance
+	print "Scaling data..."
+	scaler = StandardScaler()
+	for i in range(0, len(listOfFiles)):
+		print listOfFiles[i]
+		datafiledir = dataDir + '/' + listOfFiles[i]
+		data = LoadData(datafiledir, 'train')
+		inputs = data['inputs_train']
+		targets = data['targets_train']
+		numSamples = inputs.shape[0]
+		numFeatures = np.prod(inputs.shape[1:])
+
+		assert numSamples == targets.shape[0]
+		targets = targets[:,1]
+		inputs = inputs.reshape(numSamples, numFeatures)
+		# Normalize data
+		scaler.partial_fit(inputs, y=targets)
+	return scaler
+
+
+def DoIncrementalPCA(dataDir, listOfFiles, scaler, numComponents=10):
+	# Do PCA on data
+	print "Doing PCA..."
+	ipca = IncrementalPCA(n_components=numComponents, batch_size=10)
+	for i in range(0, len(listOfFiles)):
+		print listOfFiles[i]
+		datafiledir = dataDir + '/' + listOfFiles[i]
+		data = LoadData(datafiledir, 'train')
+		inputs = data['inputs_train']
+		targets = data['targets_train']
+		numSamples = inputs.shape[0]
+		numFeatures = np.prod(inputs.shape[1:])
+
+		assert numSamples == targets.shape[0]
+		targets = targets[:,1]
+		inputs = inputs.reshape(numSamples, numFeatures)
+		# Normalize data
+		inputs = scaler.transform(inputs)
+		ipca.partial_fit(inputs, y=targets)
+
+	return ipca, ipca.explained_variance_ratio_
+
+
+def DoPCA(dataDir, listOfFiles, scaler=None, binarize=False, numComponents=10):
 	# Performs PCA and transforms data into numComponents dimension space
 	# Assumes allImages shape: [numSamples, xdim, ydim, rgb]
 
 	print "Loading images..."
-	allImages, _ = LoadAllTrainData(dataDir, listOfFiles)
+	allImages, allLabels = LoadAllTrainData(dataDir, listOfFiles, binarize=binarize)
 	print allImages.shape
 	assert allImages.shape == (7000,128,128,3)
 	numSamples = allImages.shape[0]
@@ -299,10 +354,14 @@ def DoPCA(dataDir, listOfFiles, numComponents=10):
 
 	print "Doing PCA..."
 	pca = PCA(n_components=numComponents)
-	lowDimInputs = pca.fit_transform(inputs)
+	if scaler:
+		print "Scaling images..."
+		allImages = scaler.fit_transform(allImages)
+
+	lowDimInputs = pca.fit_transform(allImages)
 	explainedVariance = pca.explained_variance_ratio_
 
-	return lowDimInputs, explainedVariance
+	return pca, lowDimInputs, explainedVariance, allLabels
 
 
 def GetDataDistribution(dataDir, listOfFiles):
@@ -651,8 +710,12 @@ if __name__ == '__main__':
 	#PlotAverageIntensities(R, G, B, statsType='avg')
 
 
-	e = GetIntensityStats(dataDir, listOfTrainingSetFiles, statsType='max')
-	PlotIntensity(e, statsType='max')
+	#e = GetIntensityStats(dataDir, listOfTrainingSetFiles, statsType='max')
+	#PlotIntensity(e, statsType='max')
 
+	scaler = StandardizeData(dataDir, listOfTrainingSetFiles)
+	ipca, var = DoIncrementalPCA(dataDir, listOfTrainingSetFiles, scaler, numComponents=20)
+	print var
+	
 
 

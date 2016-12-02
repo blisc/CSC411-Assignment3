@@ -183,10 +183,10 @@ def main(debug=0):
 	#DoAutoEncoder(dataDir, listOfTrainingSetFiles)
 
 	# Preprocess
-	lowDimInputs, explainedVariance = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=10000)
-	print(lowDimInputs.shape)
-	plt.plot(explainedVariance)
-	plt.show()
+	#lowDimInputs, explainedVariance = DoPCA(dataDir, listOfTrainingSetFiles, numComponents=10000)
+	#print(lowDimInputs.shape)
+	#plt.plot(explainedVariance)
+	#plt.show()
 	
 
 #	colors = ['r', 'y', 'b', 'g', 'm', 'c', 'k', 'w']
